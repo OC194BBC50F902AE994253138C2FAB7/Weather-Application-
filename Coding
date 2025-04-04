@@ -1,83 +1,64 @@
-```
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import java.net.*;
-import java.io.*;
+java.netimport java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import org.json.JSONObject;
+import java.util.Scanner;
 
-public class WeatherApp {
-    private JFrame frame;
-    private JTextField cityField;
-    private JButton searchButton;
-    private JTextArea weatherArea;
+public class SimpleWeatherApp {
+    private static final String API_KEY = "YOUR_API_KEY_HERE"; // Replace with your actual API Key
+    private static final String API_URL = "https://api.openweathermap.org/data/2.5/weather?q=";
 
-    public WeatherApp() {
-        createGUI();
-    }
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        
+        System.out.print("Enter city name: ");
+        String city = scanner.nextLine().trim();
+        
+        if (city.isEmpty()) {
+            System.out.println("Error: City name cannot be empty.");
+            scanner.close();
+            return;
+        }
 
-    private void createGUI() {
-        frame = new JFrame("Weather App");
-        frame.setSize(400, 300);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(new BorderLayout());
+        try {
+            String urlString = API_URL + city + "&appid=" + API_KEY + "&units=metric";
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
 
-        JPanel topPanel = new JPanel();
-        topPanel.add(new JLabel("Enter City Name:"));
-        cityField = new JTextField(20);
-        topPanel.add(cityField);
-        searchButton = new JButton("Search");
-        searchButton.addActionListener(new SearchButtonListener());
-        topPanel.add(searchButton);
-
-        weatherArea = new JTextArea(10, 20);
-        weatherArea.setEditable(false);
-
-        frame.add(topPanel, BorderLayout.NORTH);
-        frame.add(new JScrollPane(weatherArea), BorderLayout.CENTER);
-
-        frame.setVisible(true);
-    }
-
-    private class SearchButtonListener implements ActionListener {
-        public void actionPerformed(ActionEvent e) {
-            String city = cityField.getText();
-            if (city.isEmpty()) {
-                weatherArea.setText("Please enter a city name");
-                return;
-            }
-
-            try {
-                URL url = new URL("https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=YOUR_API_KEY_HERE&units=metric");
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                int responseCode = connection.getResponseCode();
-                if (responseCode == 200) {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                    String line;
-                    StringBuilder response = new StringBuilder();
-                    while ((line = reader.readLine()) != null) {
-                        response.append(line);
-                    }
-                    reader.close();
-
-                    JSONObject jsonObject = new JSONObject(response.toString());
-                    String weatherDescription = jsonObject.getJSONArray("weather").getJSONObject(0).getString("description");
-                    double temperature = jsonObject.getJSONObject("main").getDouble("temp");
-                    int humidity = jsonObject.getJSONObject("main").getInt("humidity");
-
-                    weatherArea.setText("Weather in " + city + ":\n" + weatherDescription + "\nTemperature: " + temperature + "°C\nHumidity: " + humidity + "%");
-                } else {
-                    weatherArea.setText("Error fetching weather data");
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
                 }
-            } catch (Exception ex) {
-                weatherArea.setText("Error fetching weather data");
+                reader.close();
+
+                JSONObject jsonResponse = new JSONObject(response.toString());
+
+                if (jsonResponse.has("weather") && jsonResponse.has("main")) {
+                    String weatherDescription = jsonResponse.getJSONArray("weather").getJSONObject(0).getString("description");
+                    double temperature = jsonResponse.getJSONObject("main").getDouble("temp");
+                    int humidity = jsonResponse.getJSONObject("main").getInt("humidity");
+
+                    System.out.println("\nWeather in " + city + ":");
+                    System.out.println("------------------------");
+                    System.out.println("Description: " + weatherDescription);
+                    System.out.println("Temperature: " + temperature + "°C");
+                    System.out.println("Humidity: " + humidity + "%");
+                } else {
+                    System.out.println("Error: Unexpected API response format.");
+                }
+            } else {
+                System.out.println("Error: Unable to fetch weather data. Response Code: " + responseCode);
             }
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        } finally {
+            scanner.close();
         }
     }
-
-    public static void main(String[] args)
-        new WeatherApp();
-    }
-}
-```Enter
+}￼Enter
