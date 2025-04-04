@@ -1,0 +1,83 @@
+```
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+import java.net.*;
+import java.io.*;
+import org.json.JSONObject;
+
+public class WeatherApp {
+    private JFrame frame;
+    private JTextField cityField;
+    private JButton searchButton;
+    private JTextArea weatherArea;
+
+    public WeatherApp() {
+        createGUI();
+    }
+
+    private void createGUI() {
+        frame = new JFrame("Weather App");
+        frame.setSize(400, 300);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new BorderLayout());
+
+        JPanel topPanel = new JPanel();
+        topPanel.add(new JLabel("Enter City Name:"));
+        cityField = new JTextField(20);
+        topPanel.add(cityField);
+        searchButton = new JButton("Search");
+        searchButton.addActionListener(new SearchButtonListener());
+        topPanel.add(searchButton);
+
+        weatherArea = new JTextArea(10, 20);
+        weatherArea.setEditable(false);
+
+        frame.add(topPanel, BorderLayout.NORTH);
+        frame.add(new JScrollPane(weatherArea), BorderLayout.CENTER);
+
+        frame.setVisible(true);
+    }
+
+    private class SearchButtonListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            String city = cityField.getText();
+            if (city.isEmpty()) {
+                weatherArea.setText("Please enter a city name");
+                return;
+            }
+
+            try {
+                URL url = new URL("https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=YOUR_API_KEY_HERE&units=metric");
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 200) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    String line;
+                    StringBuilder response = new StringBuilder();
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+
+                    JSONObject jsonObject = new JSONObject(response.toString());
+                    String weatherDescription = jsonObject.getJSONArray("weather").getJSONObject(0).getString("description");
+                    double temperature = jsonObject.getJSONObject("main").getDouble("temp");
+                    int humidity = jsonObject.getJSONObject("main").getInt("humidity");
+
+                    weatherArea.setText("Weather in " + city + ":\n" + weatherDescription + "\nTemperature: " + temperature + "°C\nHumidity: " + humidity + "%");
+                } else {
+                    weatherArea.setText("Error fetching weather data");
+                }
+            } catch (Exception ex) {
+                weatherArea.setText("Error fetching weather data");
+            }
+        }
+    }
+
+    public static void main(String[] args)
+        new WeatherApp();
+    }
+}
+```Enter
